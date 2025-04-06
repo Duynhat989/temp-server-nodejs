@@ -59,11 +59,11 @@ function createDomainConfig(domainName) {
     console.log(`Server Hostname: ${serverIP}`);
     // Tạo khóa DKIM
     const { publicKey, privateKey } = generateDKIMKeys();
+    console.log(`Server Hostname: ${publicKey}`);
+    console.log(`Server Hostname: ${privateKey}`);
 
     // Tạo selector DKIM (thường là timestamp để đảm bảo tính duy nhất)
     const dkimSelector = `mail${Date.now()}`;
-    console.log(`Server Hostname: ${publicKey}`);
-    console.log(`Server Hostname: ${privateKey}`);
 
     // Tạo cấu hình mới
     const newConfig = {
@@ -83,7 +83,7 @@ function createDomainConfig(domainName) {
             dmarc: `_dmarc.${domainName}. IN TXT "v=DMARC1; p=quarantine; rua=mailto:dmarc@${domainName}"`
         }
     };
-
+    console.log(`Server Hostname: ${newConfig}`);
     // Lưu cấu hình
     domainConfigsData.domains.push(newConfig);
     saveConfigData();
