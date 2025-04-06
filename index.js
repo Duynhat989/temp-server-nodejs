@@ -194,7 +194,7 @@ app.post('/api/domains', async (req, res) => {
         
         // Create domain configuration for email
         const domainConfiguration = domainConfig.createDomainConfig(name);
-        
+        console.log(domainConfiguration);
         // Return domain with DNS setup instructions
         const dnsInstructions = domainConfig.generateDNSSetupInstructions(name);
         
