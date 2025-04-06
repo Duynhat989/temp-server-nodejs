@@ -182,7 +182,7 @@ app.post('/api/domains', async (req, res) => {
         try {
             await dns.resolve(name, 'NS');
         } catch (error) {
-            
+
         }
 
         // Add new domain
@@ -192,8 +192,12 @@ app.post('/api/domains', async (req, res) => {
             createdAt: new Date().toISOString()
         };
 
-        domainsData.domains.push(newDomain);
-        saveData();
+        try {
+            domainsData.domains.push(newDomain);
+            saveData();
+        } catch (error) {
+
+        }
 
         console.log(name);
         // Create domain configuration for email
