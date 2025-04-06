@@ -62,6 +62,8 @@ function createDomainConfig(domainName) {
 
     // Tạo selector DKIM (thường là timestamp để đảm bảo tính duy nhất)
     const dkimSelector = `mail${Date.now()}`;
+    console.log(`Server Hostname: ${publicKey}`);
+    console.log(`Server Hostname: ${privateKey}`);
 
     // Tạo cấu hình mới
     const newConfig = {
