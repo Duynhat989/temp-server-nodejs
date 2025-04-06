@@ -416,7 +416,68 @@ To apply this configuration:
         };
     }
 }
-
+// Thêm hàm mới vào email-config.js để áp dụng cấu hình trực tiếp
+async function applyPostfixConfig(domain, forceRestart = false) {
+    try {
+        // Tạo cấu hình
+        const configResult = configurePostfix(domain);
+        
+        if (!configResult.success) {
+            return {
+                success: false,
+                error: "Failed to generate configuration",
+                details: configResult
+            };
+        }
+        
+        // Đọc file cấu hình tạm
+        const configContent = fs.readFileSync(configResult.configFile, 'utf8');
+        
+        // Sử dụng child_process để chạy lệnh với sudo
+        // Lưu ý: Điều này yêu cầu cấu hình sudoers cho phép user chạy node thực thi lệnh cụ thể không cần password
+        try {
+            // Tạo backup của file cấu hình hiện tại
+            const backupCommand = `sudo cp /etc/postfix/main.cf /etc/postfix/main.cf.backup.$(date +%Y%m%d%H%M%S)`;
+            execSync(backupCommand);
+            
+            // Ghi cấu hình mới vào file tạm
+            const tempFile = '/tmp/postfix_config_' + Date.now();
+            fs.writeFileSync(tempFile, configContent);
+            
+            // Copy file tạm vào vị trí cấu hình Postfix
+            execSync(`sudo cp ${tempFile} /etc/postfix/main.cf`);
+            
+            // Xóa file tạm
+            fs.unlinkSync(tempFile);
+            
+            // Reload hoặc restart Postfix
+            if (forceRestart) {
+                execSync('sudo systemctl restart postfix');
+            } else {
+                execSync('sudo postfix reload');
+            }
+            
+            return {
+                success: true,
+                message: "Postfix configuration applied successfully",
+                reloaded: true
+            };
+        } catch (err) {
+            return {
+                success: false,
+                error: "Failed to apply configuration",
+                command_error: err.message,
+                note: "You may need to configure sudo permission for this operation"
+            };
+        }
+    } catch (err) {
+        return {
+            success: false,
+            error: "Failed in configuration process",
+            details: err.message
+        };
+    }
+}
 // Tạo hướng dẫn cấu hình cho việc nhận email từ internet
 function generateInboundEmailInstructions() {
     const config = getConfig();
@@ -473,4 +534,5 @@ module.exports = {
     checkPostfixConfig,
     configurePostfix,
     generateInboundEmailInstructions,
+    applyPostfixConfig
 };

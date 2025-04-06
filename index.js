@@ -573,7 +573,22 @@ app.post('/api/email-config/postfix/:domain', (req, res) => {
         res.status(500).json({ error: 'Failed to configure Postfix', details: err.message });
     }
 });
-
+// Thêm endpoint này vào server.js
+app.post('/api/email-config/postfix/:domain/apply', async (req, res) => {
+    try {
+        const { domain } = req.params;
+        const forceRestart = req.query.restart === 'true';
+        
+        const result = await emailConfig.applyPostfixConfig(domain, forceRestart);
+        res.json(result);
+    } catch (err) {
+        res.status(500).json({
+            success: false,
+            error: 'Failed to apply Postfix configuration',
+            details: err.message
+        });
+    }
+});
 app.get('/api/email-config/inbound-guide', (req, res) => {
     try {
         const guide = emailConfig.generateInboundEmailInstructions();
