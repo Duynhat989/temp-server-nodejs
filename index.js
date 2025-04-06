@@ -197,23 +197,18 @@ app.post('/api/domains', async (req, res) => {
 
         }
 
-        try {
-            console.log(name);
-            // Create domain configuration for email
-            const domainConfiguration = domainConfig.createDomainConfig(name);
-            console.log(domainConfiguration);
-            // Return domain with DNS setup instructions
-            const dnsInstructions = domainConfig.generateDNSSetupInstructions(name);
+        console.log(name);
+        // Create domain configuration for email
+        const domainConfiguration = domainConfig.createDomainConfig(name);
+        console.log(domainConfiguration);
+        // Return domain with DNS setup instructions
+        const dnsInstructions = domainConfig.generateDNSSetupInstructions(name);
 
-            res.status(201).json({
-                domain: newDomain,
-                config: domainConfiguration,
-                dnsSetup: dnsInstructions
-            });
-        } catch (error) {
-            console.error(`Error creating domain configuration for ${name}:`, error);
-
-        }
+        res.status(201).json({
+            domain: newDomain,
+            config: domainConfiguration,
+            dnsSetup: dnsInstructions
+        });
     } catch (error) {
         console.error(`Error adding domain ${name}:`, error);
         if (error.code === 'ENOTFOUND' || error.code === 'ENODATA') {
