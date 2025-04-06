@@ -180,7 +180,7 @@ app.post('/api/domains', async (req, res) => {
     try {
         // Validate domain by checking DNS records
         try {
-            // await dns.resolve(name, 'NS');
+            await dns.resolve(name, 'NS');
         } catch (error) { }
 
         // Add new domain

@@ -56,7 +56,7 @@ function formatDKIMPublicKeyForDNS(publicKey) {
 function createDomainConfig(domainName) {
     const serverHostname = os.hostname();
     const serverIP = getServerIP();
-
+    console.log(`Server Hostname: ${serverIP}`);
     // Tạo khóa DKIM
     const { publicKey, privateKey } = generateDKIMKeys();
 
