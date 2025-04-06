@@ -128,7 +128,7 @@ function setupTransporter(fromDomain) {
 
     const transporterConfig = {
         host: 'localhost', // For local development
-        port: 2525,
+        port: 25,
         secure: false, // For production, set to true for port 465
         tls: {
             rejectUnauthorized: false // For production, set to true
@@ -452,7 +452,7 @@ app.post('/api/send', async (req, res) => {
             date: new Date().toISOString(),
             sent: true
         };
-
+        console.log(messageData);
         // Create sender's sent directory if it doesn't exist
         const sentDir = path.join(MESSAGES_DIR, from, 'sent');
         if (!fs.existsSync(path.join(MESSAGES_DIR, from))) {
@@ -609,7 +609,7 @@ app.get('/api/email-config/inbound-guide', (req, res) => {
 
 // Start servers
 const PORT = process.env.PORT || 2053;
-const SMTP_PORT = process.env.SMTP_PORT || 2525;
+const SMTP_PORT = process.env.SMTP_PORT || 25;
 
 // Start HTTP server
 app.listen(PORT, () => {
