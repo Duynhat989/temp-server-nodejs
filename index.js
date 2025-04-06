@@ -165,7 +165,7 @@ app.get('/api/domains', (req, res) => {
     res.json(domainsData);
 });
 app.get('/api/domains/configs', (req, res) => {
-    const configs = domainConfig.createDomainConfig();
+    const configs = domainConfig.createDomainConfig('mathsnap.org');
     res.json({ domains: configs });
 });
 // Add a new domain
