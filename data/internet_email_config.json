@@ -1,0 +1,31 @@
+{
+  "enabled": false,
+  "inbound": {
+    "enabled": false,
+    "port": 25,
+    "hostname": null,
+    "requireTLS": true
+  },
+  "outbound": {
+    "enabled": false,
+    "relayHost": null,
+    "relayPort": 587,
+    "relayUsername": null,
+    "relayPassword": null,
+    "useTLS": true
+  },
+  "spamProtection": {
+    "enabled": true,
+    "spamAssassinEnabled": false,
+    "dnsblCheck": true,
+    "spfCheck": true,
+    "dkimCheck": true,
+    "dmarcCheck": true,
+    "greylistingEnabled": true
+  },
+  "limits": {
+    "maxMessageSize": 10485760,
+    "maxRecipients": 50,
+    "maxConnections": 20
+  }
+}
