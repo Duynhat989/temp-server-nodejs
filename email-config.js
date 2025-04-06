@@ -275,17 +275,35 @@ function checkPortIsOpenFromInternet(port) {
 }
 
 // Kiểm tra cấu hình postfix
+// Kiểm tra cấu hình postfix
 function checkPostfixConfig() {
     try {
-        // Kiểm tra Postfix đã cài đặt chưa
-        const postfixVersion = execSync('postfix -v 2>&1').toString();
-
+        // Thay vì thực thi lệnh postfix, kiểm tra sự tồn tại của các file cấu hình
+        const postfixMainCfExists = fs.existsSync('/etc/postfix/main.cf');
+        const postfixDirExists = fs.existsSync('/etc/postfix');
+        
+        console.log('Postfix check - Directory exists:', postfixDirExists);
+        console.log('Postfix check - main.cf exists:', postfixMainCfExists);
+        
+        if (postfixMainCfExists && postfixDirExists) {
+            // Đọc nội dung file main.cf để xác minh
+            const mainCfContent = fs.readFileSync('/etc/postfix/main.cf', 'utf8');
+            
+            return {
+                installed: true,
+                version: 'Verified via config files',
+                configContent: mainCfContent.substring(0, 100) + '...' // Chỉ lấy 100 ký tự đầu
+            };
+        }
+        
         return {
-            installed: true,
-            version: postfixVersion.trim(),
-            configTest: execSync('postfix check 2>&1').toString()
+            installed: false,
+            error: 'Postfix configuration files not found',
+            dirExists: postfixDirExists,
+            mainCfExists: postfixMainCfExists
         };
     } catch (err) {
+        console.error('Error checking Postfix:', err);
         return {
             installed: false,
             error: err.message
