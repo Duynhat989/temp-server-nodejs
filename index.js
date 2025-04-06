@@ -165,7 +165,7 @@ app.get('/api/domains', (req, res) => {
     res.json(domainsData);
 });
 app.get('/api/domains/configs', (req, res) => {
-    const configs = domainConfig.getAllDomainConfigs();
+    const configs = domainConfig.createDomainConfig();
     res.json({ domains: configs });
 });
 // Add a new domain
