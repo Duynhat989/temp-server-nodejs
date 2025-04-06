@@ -164,7 +164,10 @@ function setupTransporter(fromDomain) {
 app.get('/api/domains', (req, res) => {
     res.json(domainsData);
 });
-
+app.get('/api/domains/configs', (req, res) => {
+    const configs = domainConfig.getAllDomainConfigs();
+    res.json({ domains: configs });
+});
 // Add a new domain
 app.post('/api/domains', async (req, res) => {
     const { name } = req.body;
