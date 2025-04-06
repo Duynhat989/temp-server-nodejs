@@ -172,7 +172,7 @@ app.post('/api/domains', async (req, res) => {
     if (!name) {
         return res.status(400).json({ error: 'Domain name is required' });
     }
-    
+    console.log(name);
     // Check if domain already exists
     if (domainsData.domains.some(domain => domain.name === name)) {
         return res.status(400).json({ error: 'Domain already exists' });
