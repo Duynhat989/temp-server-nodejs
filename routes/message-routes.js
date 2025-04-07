@@ -4,7 +4,7 @@ const router = express.Router();
 
 // Import models
 const messageModel = require('../models/message-model');
-const emailModel = require('../utils/data-utils');
+const emailModel = require('../models/email-model');
 const domainConfigModel = require('../models/domain-config-model');
 
 // Import services

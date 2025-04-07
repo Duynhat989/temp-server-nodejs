@@ -134,5 +134,24 @@ Email.authenticate = async function(address, password) {
   
   return email.safeReturn();
 };
-
+// Static methods
+Email.getEmailByAddress = async function(address) {
+  try {
+    const email = await this.findOne({
+      where: { address },
+      include: [
+        {
+          model: sequelize.models.domain,
+          as: 'domain',
+          attributes: ['id', 'name']
+        }
+      ]
+    });
+    
+    return email;
+  } catch (error) {
+    console.error(`Error finding email by address ${address}:`, error.message);
+    throw error;
+  }
+};
 module.exports = Email;
