@@ -31,7 +31,6 @@ async function createSMTPServer() {
           try {
             // Parse the email
             const parsedMail = await simpleParser(mailData);
-            console.log('Received chunk:', chunk.toString());
             // Extract recipient email
             const to = parsedMail.to.value[0].address;
             console.log('Received email for:', to);
