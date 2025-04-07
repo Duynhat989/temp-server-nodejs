@@ -332,7 +332,7 @@ function configurePostfix(domain) {
         const tempConfigFile = path.join(__dirname, 'temp_postfix_config');
         const postfixConfig = `
 # Cấu hình Postfix tự động cho ${domain}
-myhostname = ${hostname}
+myhostname = ${hostname}.${domain}
 mydomain = ${domain}
 myorigin = $mydomain
 inet_interfaces = all
