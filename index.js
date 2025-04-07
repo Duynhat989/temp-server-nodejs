@@ -77,37 +77,37 @@ const smtpServer = new SMTPServer({
 
                 // Check if recipient exists in our system
                 const to = parsedMail.to.value[0].address;
+                // Store the message
+                const messageId = `${Date.now()}_${Math.floor(Math.random() * 10000)}`;
+                const messageData = {
+                    id: messageId,
+                    to: to,
+                    from: parsedMail.from.value[0].address,
+                    subject: parsedMail.subject,
+                    text: parsedMail.text,
+                    html: parsedMail.html,
+                    date: new Date().toISOString(),
+                    read: false
+                };
 
-                if (isValidEmail(to)) {
-                    // Store the message
-                    const messageId = `${Date.now()}_${Math.floor(Math.random() * 10000)}`;
-                    const messageData = {
-                        id: messageId,
-                        to: to,
-                        from: parsedMail.from.value[0].address,
-                        subject: parsedMail.subject,
-                        text: parsedMail.text,
-                        html: parsedMail.html,
-                        date: new Date().toISOString(),
-                        read: false
-                    };
-
-                    // Create user message directory if it doesn't exist
-                    const userDir = path.join(MESSAGES_DIR, to);
-                    if (!fs.existsSync(userDir)) {
-                        fs.mkdirSync(userDir);
-                    }
-
-                    // Save message to user's inbox
-                    fs.writeFileSync(
-                        path.join(userDir, `${messageId}.json`),
-                        JSON.stringify(messageData, null, 2)
-                    );
-
-                    console.log(`Email received for ${to}`);
-                } else {
-                    console.log(`Rejected email for unknown recipient: ${to}`);
+                // Create user message directory if it doesn't exist
+                const userDir = path.join(MESSAGES_DIR, to);
+                if (!fs.existsSync(userDir)) {
+                    fs.mkdirSync(userDir);
                 }
+
+                // Save message to user's inbox
+                fs.writeFileSync(
+                    path.join(userDir, `${messageId}.json`),
+                    JSON.stringify(messageData, null, 2)
+                );
+                // if (isValidEmail(to)) {
+
+
+                //     console.log(`Email received for ${to}`);
+                // } else {
+                //     console.log(`Rejected email for unknown recipient: ${to}`);
+                // }
 
                 callback();
             } catch (err) {
