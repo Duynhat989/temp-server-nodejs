@@ -14,7 +14,7 @@ class EmailConfig extends Model {
   
   // Get and parse config value
   getConfigValue() {
-    return JSON.parse(this.configValue);
+    return this.configValue;
   }
   
   // Set config value from object
