@@ -13,18 +13,18 @@ const { sendEmail, getTransporter } = require('../services/email-service');
 // Get messages for an email
 router.get('/:email', async (req, res) => {
   const { email } = req.params;
+  const emailExists = await emailModel.getEmailByAddress(email);
+  if (!emailExists) {
+    return res.status(404).json({ error: 'Email not found' });
+  }
 
+  // Get messages for this email
+  const messages = await messageModel.getMessagesForEmail(email);
+  
+  res.json({ messages });
   try {
     // Check if email exists
-    const emailExists = await emailModel.getEmailByAddress(email);
-    if (!emailExists) {
-      return res.status(404).json({ error: 'Email not found' });
-    }
-
-    // Get messages for this email
-    const messages = await messageModel.getMessagesForEmail(email);
-    
-    res.json({ messages });
+   
   } catch (error) {
     console.error(`Error getting messages for ${email}:`, error.message);
     res.status(500).json({ error: 'Error getting messages' });
