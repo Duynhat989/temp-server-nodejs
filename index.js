@@ -128,7 +128,7 @@ function setupTransporter(fromDomain) {
 
     const transporterConfig = {
         host: 'localhost', // For local development
-        port: 25,
+        port: 2525,
         secure: false, // For production, set to true for port 465
         tls: {
             rejectUnauthorized: false // For production, set to true
@@ -609,7 +609,7 @@ app.get('/api/email-config/inbound-guide', (req, res) => {
 
 // Start servers
 const PORT = process.env.PORT || 2053;
-const SMTP_PORT = process.env.SMTP_PORT || 25;
+const SMTP_PORT = process.env.SMTP_PORT || 2525;
 
 // Start HTTP server
 app.listen(PORT, () => {
