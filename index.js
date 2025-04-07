@@ -380,97 +380,103 @@ app.get('/api/messages/:email', (req, res) => {
 app.post('/api/send', async (req, res) => {
     const { from, to, subject, text, html } = req.body;
 
-    if (!from || !to || !subject) {
-        return res.status(400).json({ error: 'From, to, and subject are required' });
-    }
-
-    // Check if sender email exists in our system
-    const senderExists = emailsData.emails.some(e => e.address === from);
-    if (!senderExists) {
-        return res.status(404).json({ error: 'Sender email not found' });
-    }
-
-    // Get domain from sender email
-    const fromDomain = from.split('@')[1];
-
-    // Check if domain is configured
-    const domainCfg = domainConfig.getDomainConfigByName(fromDomain);
-    if (!domainCfg) {
-        return res.status(400).json({
-            error: 'Domain not properly configured for sending emails',
-            instructions: 'Please add domain configuration first'
-        });
-    }
-
-    // Check if domain is active
-    if (!domainCfg.active) {
-        return res.status(400).json({
-            error: 'Domain is not active for sending emails',
-            instructions: 'Please activate the domain or verify DNS settings'
-        });
-    }
-
-    // Initialize or update transporter with domain-specific settings
-    setupTransporter(fromDomain);
-
     try {
-        // Send email with proper headers
-        const mailOptions = {
-            from: {
-                name: getEmailByAddress(from)?.name || from.split('@')[0],
-                address: from
-            },
-            to,
-            subject,
-            text,
-            html,
-            headers: {
-                'X-Mailer': 'SimpleEmailServer/1.0',
-                'Message-ID': `<${Date.now()}.${Math.random().toString(36).substring(2)}@${fromDomain}>`
+        if (!from || !to || !subject) {
+            return res.status(400).json({ error: 'From, to, and subject are required' });
+        }
+
+        // Check if sender email exists in our system
+        const senderExists = emailsData.emails.some(e => e.address === from);
+        if (!senderExists) {
+            return res.status(404).json({ error: 'Sender email not found' });
+        }
+
+        // Get domain from sender email
+        const fromDomain = from.split('@')[1];
+
+        // Check if domain is configured
+        const domainCfg = domainConfig.getDomainConfigByName(fromDomain);
+        if (!domainCfg) {
+            return res.status(400).json({
+                error: 'Domain not properly configured for sending emails',
+                instructions: 'Please add domain configuration first'
+            });
+        }
+
+        // Check if domain is active
+        if (!domainCfg.active) {
+            return res.status(400).json({
+                error: 'Domain is not active for sending emails',
+                instructions: 'Please activate the domain or verify DNS settings'
+            });
+        }
+
+        // Initialize or update transporter with domain-specific settings
+        setupTransporter(fromDomain);
+
+        try {
+            // Send email with proper headers
+            const mailOptions = {
+                from: {
+                    name: getEmailByAddress(from)?.name || from.split('@')[0],
+                    address: from
+                },
+                to,
+                subject,
+                text,
+                html,
+                headers: {
+                    'X-Mailer': 'SimpleEmailServer/1.0',
+                    'Message-ID': `<${Date.now()}.${Math.random().toString(36).substring(2)}@${fromDomain}>`
+                }
+            };
+
+            const info = await transporter.sendMail(mailOptions);
+
+            // Store in sender's sent items
+            const messageId = `${Date.now()}_${Math.floor(Math.random() * 10000)}`;
+            const messageData = {
+                id: messageId,
+                messageId: info.messageId,
+                from,
+                to,
+                subject,
+                text,
+                html,
+                date: new Date().toISOString(),
+                sent: true
+            };
+            console.log(messageData);
+            // Create sender's sent directory if it doesn't exist
+            const sentDir = path.join(MESSAGES_DIR, from, 'sent');
+            if (!fs.existsSync(path.join(MESSAGES_DIR, from))) {
+                fs.mkdirSync(path.join(MESSAGES_DIR, from));
             }
-        };
+            if (!fs.existsSync(sentDir)) {
+                fs.mkdirSync(sentDir);
+            }
 
-        const info = await transporter.sendMail(mailOptions);
+            // Save to sent folder
+            fs.writeFileSync(
+                path.join(sentDir, `${messageId}.json`),
+                JSON.stringify(messageData, null, 2)
+            );
 
-        // Store in sender's sent items
-        const messageId = `${Date.now()}_${Math.floor(Math.random() * 10000)}`;
-        const messageData = {
-            id: messageId,
-            messageId: info.messageId,
-            from,
-            to,
-            subject,
-            text,
-            html,
-            date: new Date().toISOString(),
-            sent: true
-        };
-        console.log(messageData);
-        // Create sender's sent directory if it doesn't exist
-        const sentDir = path.join(MESSAGES_DIR, from, 'sent');
-        if (!fs.existsSync(path.join(MESSAGES_DIR, from))) {
-            fs.mkdirSync(path.join(MESSAGES_DIR, from));
+            // Return successful response with delivery info
+            res.json({
+                message: 'Email sent successfully',
+                id: messageId,
+                messageId: info.messageId,
+                deliveryInfo: info.response
+            });
+        } catch (err) {
+            console.error('Error sending email:', err);
+            res.status(500).json({ error: 'Failed to send email', details: err.message });
         }
-        if (!fs.existsSync(sentDir)) {
-            fs.mkdirSync(sentDir);
-        }
+    } catch (error) {
 
-        // Save to sent folder
-        fs.writeFileSync(
-            path.join(sentDir, `${messageId}.json`),
-            JSON.stringify(messageData, null, 2)
-        );
-
-        // Return successful response with delivery info
-        res.json({
-            message: 'Email sent successfully',
-            id: messageId,
-            messageId: info.messageId,
-            deliveryInfo: info.response
-        });
-    } catch (err) {
-        console.error('Error sending email:', err);
-        res.status(500).json({ error: 'Failed to send email', details: err.message });
+        console.error('Error sending email:', error);
+        res.status(500).json({ error: 'Failed to send email', details: error.message });
     }
 });
 
