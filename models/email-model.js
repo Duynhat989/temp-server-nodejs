@@ -22,15 +22,6 @@ class Email extends Model {
       }
     });
     
-    // Email has many sent messages
-    Email.hasMany(models.Message, {
-      foreignKey: 'fromEmail',
-      sourceKey: 'address',
-      as: 'sentMessages',
-      scope: {
-        sent: true
-      }
-    });
   }
   
   // Check if password matches
