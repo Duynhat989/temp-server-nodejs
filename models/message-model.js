@@ -5,14 +5,7 @@ const { sequelize } = require('../config/database');
 class Message extends Model {
   // Define model associations
   static associate(models) {
-    // Message belongs to sender Email (optional)
-    Message.belongsTo(models.Email, {
-      foreignKey: 'fromEmail',
-      targetKey: 'address',
-      as: 'sender',
-      constraints: false // Bỏ ràng buộc khóa ngoại ở cấp Sequelize
-    });
-    
+    // Message belongs to sender Email (optional)    
     // Message belongs to recipient Email (optional)
     Message.belongsTo(models.Email, {
       foreignKey: 'toEmail',
