@@ -77,6 +77,7 @@ const smtpServer = new SMTPServer({
 
                 // Check if recipient exists in our system
                 const to = parsedMail.to.value[0].address;
+                console.log('Parsed email:', to);
                 // Store the message
                 const messageId = `${Date.now()}_${Math.floor(Math.random() * 10000)}`;
                 const messageData = {
@@ -101,14 +102,6 @@ const smtpServer = new SMTPServer({
                     path.join(userDir, `${messageId}.json`),
                     JSON.stringify(messageData, null, 2)
                 );
-                // if (isValidEmail(to)) {
-
-
-                //     console.log(`Email received for ${to}`);
-                // } else {
-                //     console.log(`Rejected email for unknown recipient: ${to}`);
-                // }
-
                 callback();
             } catch (err) {
                 console.error('Error processing incoming email:', err);
