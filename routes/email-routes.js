@@ -1,129 +1,167 @@
-// Email account management routes - MySQL Version
+// Email account management routes - Sequelize Version
 const express = require('express');
 const router = express.Router();
+const { sequelize } = require('../config/database');
 
 // Import models
-const emailModel = require('../models/email-model');
-const domainModel = require('../models/domain-model');
+const Email = require('../models/email-model');
+const Domain = require('../models/domain-model');
 
 // Get all emails
-router.get('/', async (req, res) => {
+router.get('/', async (req, res, next) => {
   try {
-    const emails = await emailModel.getAllEmails();
-    res.json({ emails });
+    const emails = await Email.findAll({
+      include: [{ 
+        model: Domain,
+        as: 'domain'
+      }],
+      order: [['createdAt', 'DESC']]
+    });
+    
+    // Remove password from response
+    const safeEmails = emails.map(email => email.safeReturn());
+    
+    res.json({ emails: safeEmails });
   } catch (error) {
-    console.error('Error getting emails:', error.message);
-    res.status(500).json({ error: 'Failed to get emails' });
+    next(error);
   }
 });
 
 // Get email by ID
-router.get('/:id', async (req, res) => {
+router.get('/:id', async (req, res, next) => {
   const { id } = req.params;
   
   try {
-    const email = await emailModel.getEmailById(id);
+    const email = await Email.findByPk(id, {
+      include: [{ 
+        model: Domain,
+        as: 'domain'
+      }]
+    });
+    
     if (!email) {
       return res.status(404).json({ error: 'Email not found' });
     }
     
-    res.json(email);
+    res.json(email.safeReturn());
   } catch (error) {
-    console.error(`Error getting email ${id}:`, error.message);
-    res.status(500).json({ error: 'Failed to get email' });
+    next(error);
   }
 });
 
 // Add a new email
-router.post('/', async (req, res) => {
+router.post('/', async (req, res, next) => {
   const { address, password, name } = req.body;
 
   if (!address || !password) {
     return res.status(400).json({ error: 'Email address and password are required' });
   }
 
-  // Check email format
-  if (!address.includes('@')) {
-    return res.status(400).json({ error: 'Invalid email format' });
-  }
-
   try {
+    // Extract domain from email address
+    const domainName = address.split('@')[1];
+    if (!domainName) {
+      return res.status(400).json({ error: 'Invalid email format' });
+    }
+
     // Check if domain exists
-    const domain = address.split('@')[1];
-    const domainExists = await domainModel.getDomainByName(domain);
-    
-    if (!domainExists) {
+    const domain = await Domain.findOne({ where: { name: domainName } });
+    if (!domain) {
       return res.status(400).json({ error: 'Domain not configured in the system' });
     }
 
     // Check if email already exists
-    const existingEmail = await emailModel.getEmailByAddress(address);
+    const existingEmail = await Email.findOne({ where: { address } });
     if (existingEmail) {
       return res.status(400).json({ error: 'Email already exists' });
     }
 
     // Add new email
-    const newEmail = await emailModel.createEmail({
+    const newEmail = await Email.create({
       address,
       password,
-      name
+      name: name || '',
+      domainId: domain.id
     });
 
-    res.status(201).json(newEmail);
+    res.status(201).json(newEmail.safeReturn());
   } catch (error) {
     console.error('Error creating email:', error.message);
-    res.status(500).json({ error: 'Failed to create email' });
+    if (error.name === 'SequelizeValidationError') {
+      return res.status(400).json({ 
+        error: 'Validation error', 
+        details: error.errors.map(e => e.message) 
+      });
+    }
+    next(error);
   }
 });
 
 // Update an email
-router.put('/:id', async (req, res) => {
+router.put('/:id', async (req, res, next) => {
   const { id } = req.params;
-  const { name, password } = req.body;
+  const { name, password, active } = req.body;
   
   try {
     // Check if email exists
-    const existingEmail = await emailModel.getEmailById(id);
-    if (!existingEmail) {
+    const email = await Email.findByPk(id);
+    if (!email) {
       return res.status(404).json({ error: 'Email not found' });
     }
     
+    // Update fields that were provided
+    const updateData = {};
+    if (name !== undefined) updateData.name = name;
+    if (password !== undefined) updateData.password = password;
+    if (active !== undefined) updateData.active = active;
+    
     // Update email
-    const updatedEmail = await emailModel.updateEmail(id, {
-      name,
-      password
+    await email.update(updateData);
+    
+    // Fetch updated email with domain info
+    const updatedEmail = await Email.findByPk(id, {
+      include: [{ 
+        model: Domain,
+        as: 'domain'
+      }]
     });
     
-    res.json(updatedEmail);
+    res.json(updatedEmail.safeReturn());
   } catch (error) {
     console.error(`Error updating email ${id}:`, error.message);
-    res.status(500).json({ error: 'Failed to update email' });
+    if (error.name === 'SequelizeValidationError') {
+      return res.status(400).json({ 
+        error: 'Validation error', 
+        details: error.errors.map(e => e.message) 
+      });
+    }
+    next(error);
   }
 });
 
 // Delete an email
-router.delete('/:id', async (req, res) => {
+router.delete('/:id', async (req, res, next) => {
   const { id } = req.params;
 
   try {
     // Check if email exists
-    const existingEmail = await emailModel.getEmailById(id);
-    if (!existingEmail) {
+    const email = await Email.findByPk(id);
+    if (!email) {
       return res.status(404).json({ error: 'Email not found' });
     }
 
-    // Delete email
-    await emailModel.deleteEmail(id);
+    // Delete email - this will cascade to messages due to association
+    await email.destroy();
 
     res.json({ message: 'Email deleted successfully' });
   } catch (error) {
     console.error(`Error deleting email ${id}:`, error.message);
-    res.status(500).json({ error: 'Failed to delete email' });
+    next(error);
   }
 });
 
 // Email authentication
-async function authenticate(req, res) {
+async function authenticate(req, res, next) {
   const { email, password } = req.body;
 
   if (!email || !password) {
@@ -131,7 +169,7 @@ async function authenticate(req, res) {
   }
 
   try {
-    const authenticatedUser = await emailModel.authenticateEmail(email, password);
+    const authenticatedUser = await Email.authenticate(email, password);
     
     if (!authenticatedUser) {
       return res.status(401).json({ error: 'Invalid credentials' });
@@ -140,7 +178,7 @@ async function authenticate(req, res) {
     res.json(authenticatedUser);
   } catch (error) {
     console.error('Error during authentication:', error.message);
-    res.status(500).json({ error: 'Authentication failed' });
+    next(error);
   }
 }
 

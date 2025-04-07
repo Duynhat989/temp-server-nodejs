@@ -1,16 +1,20 @@
-// SMTP Server service - MySQL Version
+// SMTP Server service - Sequelize Version
 const SMTPServer = require('smtp-server').SMTPServer;
 const { simpleParser } = require('mailparser');
 
 // Import models
-const messageModel = require('../models/message-model');
-const emailModel = require('../models/email-model');
-const emailConfigModel = require('../models/email-config-model');
+const Message = require('../models/message-model');
+const Email = require('../models/email-model');
+const EmailConfig = require('../models/email-config-model');
 
-// Create SMTP server for receiving emails
+/**
+ * Create SMTP server for receiving emails
+ * @returns {Promise<SMTPServer>} Configured SMTP server instance
+ */
 async function createSMTPServer() {
   try {
-    const config = await emailConfigModel.getEmailConfig();
+    // Get email server configuration
+    const config = await EmailConfig.getConfig();
     
     return new SMTPServer({
       secure: false,
@@ -32,23 +36,23 @@ async function createSMTPServer() {
             const to = parsedMail.to.value[0].address;
             console.log('Received email for:', to);
             
-            // Check if this is a valid recipient in our system
-            const recipient = await emailModel.getEmailByAddress(to);
-            
-            // Store the message in database
+            // Prepare message data 
             const messageData = {
-              message_id: parsedMail.messageId,
-              from_email: parsedMail.from.value[0].address,
-              to_email: to,
-              subject: parsedMail.subject,
-              text_content: parsedMail.text,
-              html_content: parsedMail.html,
+              messageId: parsedMail.messageId,
+              fromEmail: parsedMail.from.value[0].address,
+              toEmail: to,
+              subject: parsedMail.subject || '',
+              textContent: parsedMail.text || '',
+              htmlContent: parsedMail.html || '',
               sent: false,
-              read: false
+              read: false,
+              status: 'received',
+              headers: parsedMail.headers,
+              hasAttachments: parsedMail.attachments && parsedMail.attachments.length > 0
             };
 
-            // Save message to database (whether recipient exists or not)
-            await messageModel.createMessage(messageData);
+            // Save message to database whether recipient exists or not
+            await Message.create(messageData);
             
             callback();
           } catch (err) {
@@ -67,7 +71,6 @@ async function createSMTPServer() {
       disabledCommands: ['STARTTLS'],
       size: 10 * 1024 * 1024, // 10MB default
       onData(stream, session, callback) {
-        // Similar handling as above
         stream.on('data', () => {});
         stream.on('end', () => callback());
       }

@@ -1,152 +1,137 @@
-// Message model for database operations
-const { v4: uuidv4 } = require('uuid');
-const { pool } = require('../config/database');
+// Message model using Sequelize
+const { DataTypes, Model } = require('sequelize');
+const { sequelize } = require('../config/database');
 
-/**
- * Get messages for an email address
- * @param {string} email - Email address
- * @returns {Promise<Array>} Array of message objects
- */
-async function getMessagesForEmail(email) {
-  try {
-    const [rows] = await pool.query(`
-      SELECT * FROM messages 
-      WHERE to_email = ? 
-      ORDER BY created_at DESC
-    `, [email]);
-    return rows;
-  } catch (error) {
-    console.error(`Error getting messages for ${email}:`, error.message);
-    throw error;
-  }
-}
-
-/**
- * Get sent messages for an email address
- * @param {string} email - Email address
- * @returns {Promise<Array>} Array of message objects
- */
-async function getSentMessagesForEmail(email) {
-  try {
-    const [rows] = await pool.query(`
-      SELECT * FROM messages 
-      WHERE from_email = ? AND sent = TRUE
-      ORDER BY created_at DESC
-    `, [email]);
-    return rows;
-  } catch (error) {
-    console.error(`Error getting sent messages for ${email}:`, error.message);
-    throw error;
-  }
-}
-
-/**
- * Get message by ID
- * @param {string} id - Message ID
- * @returns {Promise<Object>} Message object
- */
-async function getMessageById(id) {
-  try {
-    const [rows] = await pool.query('SELECT * FROM messages WHERE id = ?', [id]);
-    return rows[0] || null;
-  } catch (error) {
-    console.error(`Error getting message ${id}:`, error.message);
-    throw error;
-  }
-}
-
-/**
- * Create a new message
- * @param {Object} messageData - Message data
- * @returns {Promise<Object>} Created message object
- */
-async function createMessage(messageData) {
-  try {
-    const id = uuidv4();
-    const {
-      message_id,
-      from_email,
-      to_email,
-      subject,
-      text_content,
-      html_content,
-      sent = false,
-      read = false
-    } = messageData;
+class Message extends Model {
+  // Define model associations
+  static associate(models) {
+    // Message belongs to sender Email
+    Message.belongsTo(models.Email, {
+      foreignKey: 'fromEmail',
+      targetKey: 'address',
+      as: 'sender'
+    });
     
-    await pool.query(`
-      INSERT INTO messages (
-        id, message_id, from_email, to_email, subject, 
-        text_content, html_content, sent, read
-      ) 
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
-    `, [
-      id, message_id, from_email, to_email, subject,
-      text_content, html_content, sent, read
-    ]);
-    
-    return getMessageById(id);
-  } catch (error) {
-    console.error('Error creating message:', error.message);
-    throw error;
+    // Message belongs to recipient Email
+    Message.belongsTo(models.Email, {
+      foreignKey: 'toEmail',
+      targetKey: 'address',
+      as: 'recipient'
+    });
   }
 }
 
-/**
- * Mark a message as read
- * @param {string} id - Message ID
- * @returns {Promise<Object>} Updated message object
- */
-async function markMessageAsRead(id) {
-  try {
-    await pool.query('UPDATE messages SET read = TRUE WHERE id = ?', [id]);
-    return getMessageById(id);
-  } catch (error) {
-    console.error(`Error marking message ${id} as read:`, error.message);
-    throw error;
+// Initialize Message model
+Message.init({
+  id: {
+    type: DataTypes.UUID,
+    defaultValue: DataTypes.UUIDV4,
+    primaryKey: true
+  },
+  messageId: {
+    type: DataTypes.STRING,
+    allowNull: true,
+    comment: 'SMTP Message-ID header'
+  },
+  fromEmail: {
+    type: DataTypes.STRING,
+    allowNull: false,
+    validate: {
+      isEmail: true
+    }
+  },
+  toEmail: {
+    type: DataTypes.STRING,
+    allowNull: false,
+    validate: {
+      isEmail: true
+    }
+  },
+  subject: {
+    type: DataTypes.TEXT,
+    allowNull: true
+  },
+  textContent: {
+    type: DataTypes.TEXT('long'),
+    allowNull: true
+  },
+  htmlContent: {
+    type: DataTypes.TEXT('long'),
+    allowNull: true
+  },
+  sent: {
+    type: DataTypes.BOOLEAN,
+    defaultValue: false,
+    comment: 'Whether the message was sent from our system'
+  },
+  read: {
+    type: DataTypes.BOOLEAN,
+    defaultValue: false
+  },
+  headers: {
+    type: DataTypes.JSON,
+    allowNull: true
+  },
+  hasAttachments: {
+    type: DataTypes.BOOLEAN,
+    defaultValue: false
+  },
+  status: {
+    type: DataTypes.ENUM('received', 'sent', 'failed', 'queued'),
+    defaultValue: 'received'
   }
-}
+}, {
+  sequelize,
+  modelName: 'message',
+  timestamps: true,
+  underscored: true,
+  indexes: [
+    {
+      name: 'idx_message_from_email',
+      fields: ['from_email']
+    },
+    {
+      name: 'idx_message_to_email',
+      fields: ['to_email']
+    },
+    {
+      name: 'idx_message_created_at',
+      fields: ['created_at']
+    }
+  ]
+});
 
-/**
- * Delete a message
- * @param {string} id - Message ID
- * @returns {Promise<boolean>} True if successful
- */
-async function deleteMessage(id) {
-  try {
-    await pool.query('DELETE FROM messages WHERE id = ?', [id]);
-    return true;
-  } catch (error) {
-    console.error(`Error deleting message ${id}:`, error.message);
-    throw error;
-  }
-}
-
-/**
- * Get message for a specific email and message ID
- * @param {string} email - Email address
- * @param {string} messageId - Message ID
- * @returns {Promise<Object>} Message object
- */
-async function getMessageForEmailById(email, messageId) {
-  try {
-    const [rows] = await pool.query(`
-      SELECT * FROM messages 
-      WHERE (to_email = ? OR from_email = ?) AND id = ?
-    `, [email, email, messageId]);
-    return rows[0] || null;
-  } catch (error) {
-    console.error(`Error getting message ${messageId} for ${email}:`, error.message);
-    throw error;
-  }
-}
-
-module.exports = {
-  getMessagesForEmail,
-  getSentMessagesForEmail,
-  getMessageById,
-  createMessage,
-  markMessageAsRead,
-  deleteMessage,
-  getMessageForEmailById
+// Static methods
+Message.getMessagesForEmail = async function(email, options = {}) {
+  const { limit = 50, offset = 0, unreadOnly = false, sort = 'desc' } = options;
+  
+  const query = {
+    where: {
+      toEmail: email,
+      ...(unreadOnly ? { read: false } : {})
+    },
+    order: [['createdAt', sort.toUpperCase()]],
+    limit,
+    offset
+  };
+  
+  return this.findAndCountAll(query);
 };
+
+Message.getSentMessagesForEmail = async function(email, options = {}) {
+  const { limit = 50, offset = 0, sort = 'desc' } = options;
+  
+  const query = {
+    where: {
+      fromEmail: email,
+      sent: true
+    },
+    order: [['createdAt', sort.toUpperCase()]],
+    limit,
+    offset
+  };
+  
+  return this.findAndCountAll(query);
+};
+
+module.exports = Message;

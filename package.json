@@ -10,15 +10,16 @@
     "dependencies": {
         "bcrypt": "^5.1.0",
         "body-parser": "^1.19.0",
-        "compression": "^1.8.0",
+        "compression": "^1.7.4",
         "cors": "^2.8.5",
         "dotenv": "^16.0.3",
         "express": "^4.17.1",
-        "helmet": "^8.1.0",
+        "helmet": "^6.0.1",
         "mailparser": "^3.5.0",
         "morgan": "^1.10.0",
         "mysql2": "^2.3.3",
         "nodemailer": "^6.8.0",
+        "sequelize": "^6.28.0",
         "smtp-server": "^3.11.0",
         "uuid": "^9.0.0"
     },

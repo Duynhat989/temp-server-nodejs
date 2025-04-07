@@ -1,11 +1,15 @@
-// Email sending service - MySQL Version
+// Email sending service - Sequelize Version
 const nodemailer = require('nodemailer');
-const domainConfigModel = require('../models/domain-config-model');
+const DomainConfig = require('../models/domain-config-model');
 
 // Nodemailer transporter
 let transporter = null;
 
-// Setup transporter with DKIM support
+/**
+ * Setup transporter with DKIM support
+ * @param {string} fromDomain - Domain for sending email
+ * @returns {Promise<Object>} Configured nodemailer transporter
+ */
 async function setupTransporter(fromDomain) {
   try {
     // Default config for local development
@@ -21,26 +25,28 @@ async function setupTransporter(fromDomain) {
     // Add domain-specific configuration if available
     if (fromDomain) {
       // Check if we have configuration for this domain
-      const domainCfg = await domainConfigModel.getDomainConfigByName(fromDomain);
+      const domainCfg = await DomainConfig.findOne({ 
+        where: { domainName: fromDomain, active: true } 
+      });
 
-      // Add DKIM signing if we have configuration and domain is active
-      if (domainCfg && domainCfg.active) {
+      // Add DKIM signing if we have configuration
+      if (domainCfg) {
         transporterConfig.dkim = {
-          domainName: domainCfg.domain_name,
-          keySelector: domainCfg.dkim_selector,
-          privateKey: domainCfg.dkim_private_key
+          domainName: domainCfg.domainName,
+          keySelector: domainCfg.dkimSelector,
+          privateKey: domainCfg.dkimPrivateKey
         };
       }
     }
 
     // For production use, you'd configure real SMTP settings:
     // const transporterConfig = {
-    //     host: 'your-smtp-server.com',
-    //     port: 587,
-    //     secure: false, // true for 465, false for other ports
+    //     host: process.env.SMTP_HOST,
+    //     port: process.env.SMTP_PORT,
+    //     secure: process.env.SMTP_SECURE === 'true',
     //     auth: {
-    //         user: 'smtp-username',
-    //         pass: 'smtp-password'
+    //         user: process.env.SMTP_USER,
+    //         pass: process.env.SMTP_PASS
     //     }
     // };
 
@@ -52,7 +58,11 @@ async function setupTransporter(fromDomain) {
   }
 }
 
-// Get current transporter or create a new one
+/**
+ * Get current transporter or create a new one
+ * @param {string} fromDomain - Domain for sending email
+ * @returns {Promise<Object>} Nodemailer transporter
+ */
 async function getTransporter(fromDomain) {
   try {
     if (!transporter || fromDomain) {
@@ -65,7 +75,11 @@ async function getTransporter(fromDomain) {
   }
 }
 
-// Send an email
+/**
+ * Send an email
+ * @param {Object} mailOptions - Nodemailer mail options
+ * @returns {Promise<Object>} Mail send result
+ */
 async function sendEmail(mailOptions) {
   try {
     const fromDomain = mailOptions.from.address.split('@')[1];

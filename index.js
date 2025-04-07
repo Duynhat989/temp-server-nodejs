@@ -1,8 +1,8 @@
 /**
- * Email Server - Main Application Entry Point
+ * Email Server - Main Application Entry Point (Sequelize Version)
  * 
  * This file initializes the express application, connects to the database,
- * sets up middleware, routes, and starts the HTTP and SMTP servers.
+ * initializes Sequelize models, sets up middleware, routes, and starts the servers.
  */
 
 // Core dependencies
@@ -19,8 +19,8 @@ require('dotenv').config();
 const { testConnection, initDatabase } = require('./config/database');
 
 // Services
-const { setupTransporter } = require('./services/email-service');
 const smtpService = require('./services/smtp-service');
+const emailService = require('./services/email-service');
 
 // Routes
 const domainRoutes = require('./routes/domain-routes');
@@ -60,7 +60,7 @@ app.post('/api/send', messageRoutes.sendEmail);
 // Root route
 app.get('/', (req, res) => {
   res.json({
-    name: 'Email Server API',
+    name: 'Email Server API (Sequelize Version)',
     version: process.env.npm_package_version || '1.0.0',
     status: 'running'
   });
@@ -76,6 +76,7 @@ app.use((err, req, res, next) => {
   const statusCode = err.statusCode || 500;
   console.error(`[${new Date().toISOString()}] Error:`, err);
   
+  // Send different error details based on environment
   res.status(statusCode).json({
     error: err.name || 'Server error',
     message: process.env.NODE_ENV === 'production' 
@@ -97,9 +98,9 @@ async function startServer() {
       process.exit(1);
     }
 
-    // Initialize database schema
+    // Initialize database and models
     await initDatabase();
-    console.log('Database initialized successfully');
+    console.log('Database and models initialized successfully');
 
     // Get server IP for logging
     const os = require('os');
@@ -124,7 +125,7 @@ async function startServer() {
     // Start SMTP server
     smtpServer.listen(SMTP_PORT, () => {
       console.log(`✅ SMTP server running on ${serverIP}:${SMTP_PORT}`);
-      setupTransporter();
+      emailService.setupTransporter();
     });
 
     // Graceful shutdown
@@ -157,8 +158,8 @@ function setupGracefulShutdown(httpServer, smtpServer) {
     
     // Close database connections
     try {
-      const { pool } = require('./config/database');
-      await pool.end();
+      const { sequelize } = require('./config/database');
+      await sequelize.close();
       console.log('Database connections closed');
     } catch (err) {
       console.error('Error closing database connections:', err);
