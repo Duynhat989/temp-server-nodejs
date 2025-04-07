@@ -5,18 +5,20 @@ const { sequelize } = require('../config/database');
 class Message extends Model {
   // Define model associations
   static associate(models) {
-    // Message belongs to sender Email
+    // Message belongs to sender Email (optional)
     Message.belongsTo(models.Email, {
       foreignKey: 'fromEmail',
       targetKey: 'address',
-      as: 'sender'
+      as: 'sender',
+      constraints: false // Bỏ ràng buộc khóa ngoại ở cấp Sequelize
     });
     
-    // Message belongs to recipient Email
+    // Message belongs to recipient Email (optional)
     Message.belongsTo(models.Email, {
       foreignKey: 'toEmail',
       targetKey: 'address',
-      as: 'recipient'
+      as: 'recipient',
+      constraints: false // Bỏ ràng buộc khóa ngoại ở cấp Sequelize
     });
   }
 }
@@ -132,6 +134,47 @@ Message.getSentMessagesForEmail = async function(email, options = {}) {
   };
   
   return this.findAndCountAll(query);
+};
+
+// Thêm phương thức tìm message theo ID
+Message.getMessageById = async function(id) {
+  return this.findByPk(id, {
+    include: [
+      {
+        model: sequelize.models.Email,
+        as: 'sender',
+        attributes: ['id', 'address', 'name'],
+        required: false
+      },
+      {
+        model: sequelize.models.Email,
+        as: 'recipient',
+        attributes: ['id', 'address', 'name'],
+        required: false
+      }
+    ]
+  });
+};
+
+// Thêm phương thức đánh dấu đã đọc
+Message.markAsRead = async function(id) {
+  const message = await this.findByPk(id);
+  if (message) {
+    message.read = true;
+    await message.save();
+    return message;
+  }
+  return null;
+};
+
+// Thêm phương thức xóa message
+Message.deleteMessage = async function(id) {
+  const message = await this.findByPk(id);
+  if (message) {
+    await message.destroy();
+    return true;
+  }
+  return false;
 };
 
 module.exports = Message;
