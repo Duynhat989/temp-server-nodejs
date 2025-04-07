@@ -4,6 +4,7 @@ const router = express.Router();
 
 // Import models
 const emailConfigModel = require('../models/email-config-model');
+const emailConfig = require('../config/email-config');
 
 // Get email configuration
 router.get('/', async (req, res) => {
@@ -72,7 +73,8 @@ router.get('/port-check', async (req, res) => {
 router.post('/postfix/:domain', async (req, res) => {
   try {
     const { domain } = req.params;
-    const result = await emailConfigModel.configurePostfix(domain);
+    console.log(`Configuring Postfix for domain: ${domain}`);
+    const result = await emailConfig.configurePostfix(domain);
     res.json(result);
   } catch (error) {
     console.error(`Error configuring Postfix for ${domain}:`, error.message);
@@ -86,7 +88,7 @@ router.post('/postfix/:domain/apply', async (req, res) => {
     const { domain } = req.params;
     const forceRestart = req.query.restart === 'true';
 
-    const result = await emailConfigModel.applyPostfixConfig(domain, forceRestart);
+    const result = await emailConfig.applyPostfixConfig(domain, forceRestart);
     res.json(result);
   } catch (error) {
     console.error(`Error applying Postfix config for ${domain}:`, error.message);

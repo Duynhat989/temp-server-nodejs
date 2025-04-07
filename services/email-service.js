@@ -5,11 +5,6 @@ const DomainConfig = require('../models/domain-config-model');
 // Nodemailer transporter
 let transporter = null;
 
-/**
- * Setup transporter with DKIM support
- * @param {string} fromDomain - Domain for sending email
- * @returns {Promise<Object>} Configured nodemailer transporter
- */
 async function setupTransporter(fromDomain) {
   try {
     // Default config for local development
@@ -25,8 +20,8 @@ async function setupTransporter(fromDomain) {
     // Add domain-specific configuration if available
     if (fromDomain) {
       // Check if we have configuration for this domain
-      const domainCfg = await DomainConfig.findOne({ 
-        where: { domainName: fromDomain, active: true } 
+      const domainCfg = await DomainConfig.findOne({
+        where: { domainName: fromDomain, active: true }
       });
 
       // Add DKIM signing if we have configuration
